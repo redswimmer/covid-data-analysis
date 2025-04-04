@@ -148,7 +148,29 @@ summary(us_data)
 ```
 ## Step 3: Add Visualizations and Analysis
 
-### Visualizations
+### US Visualizations
+
+```{r us-visualizations}
+# US totals by state
+us_by_state <- us_data %>%
+  group_by(Province_State, Country_Region, Date) %>%
+  summarise(Cases = sum(Cases), Deaths = sum(Deaths), Population = sum(Population)) %>%
+  mutate(Deaths_Per_Mil = Deaths * 1000000 / Population,
+         Cases_Per_Mil = Cases * 1000000 / Population) %>%
+  select(Province_State, Country_Region, Date, Cases, Deaths, Population, Deaths_Per_Mil, Cases_Per_Mil) %>%
+  ungroup()
+us_by_state
+
+# US totals
+us_totals <- us_data %>%
+  group_by(Country_Region, Date) %>%
+  summarise(Cases = sum(Cases), Deaths = sum(Deaths), Population = sum(Population)) %>%
+  mutate(Deaths_Per_Mil = Deaths * 1000000 / Population,
+         Cases_Per_Mil = Cases * 1000000 / Population) %>%
+  select(Country_Region, Date, Cases, Deaths, Population, Deaths_Per_Mil, Cases_Per_Mil) %>%
+  ungroup()
+us_totals
+```
 
 ## Session Info
 
