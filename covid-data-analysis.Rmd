@@ -1,0 +1,158 @@
+---
+title: "COVID-19 Data Analysis"
+author: "Andrew Savala"
+date: "2025-04-01"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(corrplot)
+library(tidyverse)
+```
+
+## Overview
+
+In this project I will be analyzing COVID-19 data from the the Center for Systems Science and Engineering (CSSE) at Johns Hopkins University.  The dataset contains daily time series summary tables, including confirmed, deaths and recovered.
+
+On March 10, 2023, the Johns Hopkins Coronavirus Resource Center ceased its collecting and reporting of global COVID-19 data.
+
+## Step 1: Import COVID-19 Data
+
+```{r import}
+# Read time series data from Johns Hopkins University GitHub repository
+# Raw base URL
+url_base <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
+file_names <- c("time_series_covid19_confirmed_global.csv", 
+                "time_series_covid19_deaths_global.csv", 
+                "time_series_covid19_confirmed_US.csv",
+                "time_series_covid19_deaths_US.csv")
+urls <- str_c(url_base, file_names)
+
+global_cases <- read_csv(urls[1], show_col_types = FALSE)
+global_deaths <- read_csv(urls[2], show_col_types = FALSE)
+us_cases <- read_csv(urls[3], show_col_types = FALSE)
+us_deaths <- read_csv(urls[4], show_col_types = FALSE)
+```
+
+## Step 2: Tidy and Transform Data
+
+### Examine Our Data
+
+Here's our raw data:
+```{r display}
+# Display our raw COVID-19 data
+head(global_cases)
+head(global_deaths)
+head(us_cases)
+head(us_deaths)
+```
+### Global Data
+
+Lets start by transforming our global data.
+```{r transform global-data}
+# Convert global cases wide to long format and drop lat and long
+global_cases_long <- global_cases %>%
+  pivot_longer(cols = -c(`Province/State`, `Country/Region`, Lat, Long), 
+               names_to = "Date", values_to = "Cases") %>%
+  mutate(Date = mdy(Date)) %>%
+  select(-Lat, -Long)
+
+global_deaths_long <- global_deaths %>%
+  pivot_longer(cols = -c(`Province/State`, `Country/Region`, Lat, Long), 
+               names_to = "Date", values_to = "Deaths") %>%
+  mutate(Date = mdy(Date)) %>%
+  select(-Lat, -Long)
+
+head(global_cases_long)
+head(global_deaths_long)
+```
+We can combine our global data.
+```{r combine global-data}
+# Combine global cases and deaths data
+global_data <- global_cases_long %>%
+  full_join(global_deaths_long, by = c("Province/State", "Country/Region", "Date")) %>%
+  rename(Province_State = `Province/State`, Country_Region = `Country/Region`)
+
+summary(global_data)
+```
+Lets filter our global data to only include countries with cases greater than 0.  This will help us with our analysis.
+
+```{r filter global-data}
+# Filter global data where the cases are positive
+global_data <- global_data %>% filter(Cases > 0)
+summary(global_data)
+```
+Lastly, let add the population data to our global data from John Hopkins University GitHub.
+
+```{r add population}
+# Create a Combined_Key column for global data
+global_data <- global_data %>%
+  unite("Combined_Key", c(Province_State, Country_Region), sep = ", ", na.rm = TRUE, remove = FALSE)
+
+# Download population data from John Hopkins University
+uid_lookup_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv"
+uid <- read_csv(uid_lookup_url, show_col_types = FALSE) %>%
+  select(Province_State, Country_Region, Population)
+
+# Join population data to global data by Country_Region and Province_State
+global_data_with_population <- global_data %>%
+  left_join(uid, by = c("Province_State", "Country_Region")) %>%
+  select(Province_State, Country_Region, Date, Cases, Deaths, Population, Combined_Key)
+global_data_with_population
+```
+
+### US Data
+
+Lets continue with looking at our US data.
+
+```{r transform us-data}
+# Convert US cases wide to long format and drop columns we don't care about
+us_cases_long <- us_cases %>%
+  pivot_longer(cols = -(UID:Combined_Key), 
+               names_to = "Date", values_to = "Cases") %>%
+  select(Admin2:Cases) %>%
+  mutate(Date = mdy(Date)) %>%
+  select(-c(Lat, Long_))
+
+# Do the same with the US Deaths data
+us_deaths_long <- us_deaths %>%
+  pivot_longer(cols = -(UID:Population),
+               names_to = "Date", values_to = "Deaths") %>%
+  select(Admin2:Deaths) %>%
+  mutate(Date = mdy(Date)) %>%
+  select(-c(Lat, Long_))
+
+head(us_cases_long)
+head(us_deaths_long)
+```
+
+We can combine our US data.
+
+```{r combine us-data}
+# Combine us cases and deaths data
+us_data <- us_cases_long %>%
+  full_join(us_deaths_long)
+summary(us_data)
+```
+Lets filter our US data to only include states with cases greater than 0.  This will help us with our analysis.
+```{r filter us-data}
+# Filter US data where the cases are positive
+us_data <- us_data %>% filter(Cases > 0)
+summary(us_data)
+```
+## Step 3: Add Visualizations and Analysis
+
+### Visualizations
+
+## Session Info
+
+Record our session info for reproducibility.
+```{r session-info}
+sessionInfo()
+```
