@@ -36,6 +36,5 @@ As of March 10, 2023, the Johns Hopkins Coronavirus Resource Center ceased colle
   "corrplot",
   "tidyverse"
   ))
-
-   ```
+  ```
  4. Run the R Markdown file.
