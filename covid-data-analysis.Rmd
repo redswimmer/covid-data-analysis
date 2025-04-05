@@ -268,6 +268,43 @@ ca_totals_weekly %>%
   scale_color_manual(values = c("Weekly Cases" = "blue", "Weekly Deaths" = "red")) +
   theme_minimal()
 ```
+We're going to focus our analysis on the states with the most deaths and cases per thousand.
+
+```{r us-per-thousand}
+# Calculate cases and deaths per thousand grouped by state
+us_state_totals <- us_by_state %>%
+  group_by(Province_State) %>%
+  summarise(Cases = max(Cases), Deaths = max(Deaths), 
+            Population = max(Population),
+            Cases_Per_Thousand = 1000 * Cases / Population,
+            Deaths_Per_Thousand = 1000 * Deaths / Population) %>%
+  filter(Cases > 0, Population > 0)
+
+# Find top 5 states with most Deaths_Per_Thousand
+us_state_totals %>%
+  arrange(desc(Deaths_Per_Thousand)) %>%
+  slice(1:5) %>%
+  ggplot(aes(x = reorder(Province_State, Deaths_Per_Thousand), y = Deaths_Per_Thousand)) +
+  geom_bar(stat = "identity", fill = "red") +
+  coord_flip() +
+  labs(title = "Top 5 States with Most Deaths Per Thousand",
+       x = "State",
+       y = "Deaths Per Thousand") +
+  theme_minimal()
+
+# Find top 5 states with most Cases_Per_Thousand
+us_state_totals %>%
+  arrange(desc(Cases_Per_Thousand)) %>%
+  slice(1:5) %>%
+  ggplot(aes(x = reorder(Province_State, Cases_Per_Thousand), y = Cases_Per_Thousand)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  coord_flip() +
+  labs(title = "Top 5 States with Most Cases Per Thousand",
+       x = "State",
+       y = "Cases Per Thousand") +
+  theme_minimal()
+  
+```
 
 ## Session Info
 
