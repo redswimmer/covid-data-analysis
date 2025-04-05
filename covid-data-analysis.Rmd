@@ -149,7 +149,7 @@ Lets filter our US data to only include states with cases greater than 0.  This 
 us_data <- us_data %>% filter(Cases > 0) %>% filter(Population > 0)
 summary(us_data)
 ```
-## Step 3: Add Visualizations and Analysis
+## Visualizations and Analysis
 
 ### US Visualizations
 
@@ -205,6 +205,68 @@ us_by_state %>%
   scale_color_manual(values = c("Cases" = "blue", "Deaths" = "red")) +
   theme_minimal()
 
+```
+### US Analysis
+
+```{r us-analysis}
+us_totals <- us_totals %>%
+  mutate(New_Cases = Cases - lag(Cases, default = 0),
+         New_Deaths = Deaths - lag(Deaths, default = 0))
+
+us_totals_weekly <- us_totals %>%
+  mutate(Week = floor_date(Date, "week")) %>%
+  group_by(Week) %>%
+  summarise(
+    Weekly_Cases = sum(New_Cases, na.rm = TRUE),
+    Weekly_Deaths = sum(New_Deaths, na.rm = TRUE)
+  )
+
+us_totals_weekly %>%
+  filter(Weekly_Cases > 0, Weekly_Deaths > 0) %>%
+  ggplot(aes(x = Week, y = Weekly_Cases)) +
+  geom_line(aes(color = "Weekly Cases")) +
+  geom_point(aes(color = "Weekly Cases")) +
+  geom_line(aes(y = Weekly_Deaths, color = "Weekly Deaths")) +
+  geom_point(aes(y = Weekly_Deaths, color = "Weekly Deaths")) +
+  scale_y_log10() +
+  labs(
+    title = "US COVID-19 New Cases and Deaths Over Time (Weekly Totals)",
+    x = "Week",
+    y = "Count"
+  ) +
+  scale_color_manual(values = c("Weekly Cases" = "blue", "Weekly Deaths" = "red")) +
+  theme_minimal()
+```
+
+```{r state-analysis}
+us_by_state <- us_by_state %>%
+  mutate(New_Cases = Cases - lag(Cases, default = 0),
+         New_Deaths = Deaths - lag(Deaths, default = 0))
+
+ca_totals_weekly <- us_by_state %>%
+  filter(Province_State == "California") %>%
+  mutate(Week = floor_date(Date, "week")) %>%
+  group_by(Week) %>%
+  summarise(
+    Weekly_Cases = sum(New_Cases, na.rm = TRUE),
+    Weekly_Deaths = sum(New_Deaths, na.rm = TRUE)
+  )
+
+ca_totals_weekly %>%
+  filter(Weekly_Cases > 0, Weekly_Deaths > 0) %>%
+  ggplot(aes(x = Week, y = Weekly_Cases)) +
+  geom_line(aes(color = "Weekly Cases")) +
+  geom_point(aes(color = "Weekly Cases")) +
+  geom_line(aes(y = Weekly_Deaths, color = "Weekly Deaths")) +
+  geom_point(aes(y = Weekly_Deaths, color = "Weekly Deaths")) +
+  scale_y_log10() +
+  labs(
+    title = "California COVID-19 New Cases and Deaths Over Time (Weekly Totals)",
+    x = "Week",
+    y = "Count"
+  ) +
+  scale_color_manual(values = c("Weekly Cases" = "blue", "Weekly Deaths" = "red")) +
+  theme_minimal()
 ```
 
 ## Session Info
