@@ -3,13 +3,16 @@ title: "COVID-19 Data Analysis"
 author: "Andrew Savala"
 date: "2025-04-05"
 output:
-  pdf_document: default
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: true
+    includes:
+      in_header: preamble.tex
   html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(ggplot2)
 library(lubridate)
 library(corrplot)
 library(tidyverse)

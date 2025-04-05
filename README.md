@@ -35,7 +35,6 @@ As of March 10, 2023, the Johns Hopkins Coronavirus Resource Center ceased colle
 
     ```r
     install.packages(c(
-      "ggplot2",
       "lubridate",
       "corrplot",
       "tidyverse"
