@@ -24,17 +24,22 @@ As of March 10, 2023, the Johns Hopkins Coronavirus Resource Center ceased colle
 ## How to Run the Analysis
 
 1. Clone the repository (or download the project folder):
-   ```bash
-   git clone https://github.com/your-username/covid19-data-analysis.git
-   ```
+    
+    ```bash
+    git clone https://github.com/redswimmer/covid-data-analysis.git
+    ```
+
 2. Open RStudio and load the project folder.
+
 3. Install required packages (if not already installed):
-   ```R
-   install.packages(c(
-  "ggplot2",
-  "lubridate",
-  "corrplot",
-  "tidyverse"
-  ))
-  ```
- 4. Run the R Markdown file.
+
+    ```r
+    install.packages(c(
+      "ggplot2",
+      "lubridate",
+      "corrplot",
+      "tidyverse"
+    ))
+    ```
+
+4. Run the R Markdown file.
