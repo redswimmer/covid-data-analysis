@@ -3,8 +3,8 @@ title: "COVID-19 Data Analysis"
 author: "Andrew Savala"
 date: "2025-04-05"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -139,6 +139,8 @@ us_by_state %>%
   theme_minimal()
 
 ```
+
+
 ### US Analysis
 
 Now lets do some analysis.  We will look at the new cases and deaths over time by week.
@@ -203,6 +205,8 @@ ca_totals_weekly %>%
   scale_color_manual(values = c("Weekly Cases" = "blue", "Weekly Deaths" = "red")) +
   theme_minimal()
 ```
+
+
 Now lets see which states had the most deaths and cases per thousand.
 
 ```{r us-per-thousand}
@@ -240,6 +244,8 @@ us_state_totals %>%
   theme_minimal()
   
 ```
+
+
 ## Model
 
 Lets train a linear regression model to predict the number of deaths per thousand based on the number of cases per thousand.
@@ -267,6 +273,8 @@ us_state_totals %>%
   theme_minimal()
 
 ```
+
+
 Based on the Multiple R-squared, we can see that our model explains about 30% of the variation in deaths per thousand.  This is not a very good model.  We can try to improve it by adding more features to our model.
 
 ### Additional Features
@@ -345,6 +353,8 @@ ggplot(us_state_totals, aes(x = Predicted_Deaths_Per_Thousand_Vaccine, y = Death
        title = "Predicted vs Actual Deaths Per Thousand") +
   theme_minimal()
 ```
+
+
 We're going in the right direction because Multiple R-squared indicates our model explains about 42% of the variation in deaths per thousand.  This is a significant improvement over our previous model.  
 
 ## Bias Identification and Conclusion
