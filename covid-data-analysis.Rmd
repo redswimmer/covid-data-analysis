@@ -101,10 +101,14 @@ uid <- read_csv(uid_lookup_url, show_col_types = FALSE) %>%
   select(Province_State, Country_Region, Population)
 
 # Join population data to global data by Country_Region and Province_State
-global_data_with_population <- global_data %>%
+global_data <- global_data %>%
   left_join(uid, by = c("Province_State", "Country_Region")) %>%
   select(Province_State, Country_Region, Date, Cases, Deaths, Population, Combined_Key)
-global_data_with_population
+
+# Lets filter to only show populations > 0
+global_data <- global_data %>% filter(Population > 0)
+
+summary(global_data)
 ```
 
 ### US Data
@@ -138,17 +142,18 @@ We can combine our US data.
 # Combine us cases and deaths data
 us_data <- us_cases_long %>%
   full_join(us_deaths_long)
-summary(us_data)
 ```
 Lets filter our US data to only include states with cases greater than 0.  This will help us with our analysis.
 ```{r filter us-data}
-# Filter US data where the cases are positive
-us_data <- us_data %>% filter(Cases > 0)
+# Filter US data where the cases and population are positive
+us_data <- us_data %>% filter(Cases > 0) %>% filter(Population > 0)
 summary(us_data)
 ```
 ## Step 3: Add Visualizations and Analysis
 
 ### US Visualizations
+
+Lets start with some visualizations of the US data.  We will create a few plots to show the trends in cases and deaths over time.
 
 ```{r us-visualizations}
 # US totals by state
@@ -159,7 +164,6 @@ us_by_state <- us_data %>%
          Cases_Per_Mil = Cases * 1000000 / Population) %>%
   select(Province_State, Country_Region, Date, Cases, Deaths, Population, Deaths_Per_Mil, Cases_Per_Mil) %>%
   ungroup()
-us_by_state
 
 # US totals
 us_totals <- us_data %>%
@@ -169,7 +173,38 @@ us_totals <- us_data %>%
          Cases_Per_Mil = Cases * 1000000 / Population) %>%
   select(Country_Region, Date, Cases, Deaths, Population, Deaths_Per_Mil, Cases_Per_Mil) %>%
   ungroup()
-us_totals
+
+# Plot US totals for cases and deaths over time and filter to only show cases > 0.  Lets also scale Y so we can compare the trends.
+us_totals %>%
+  filter(Cases > 0) %>%
+  ggplot(aes(x = Date, y = Cases)) +
+  geom_line(aes(y = Cases, color = "Cases")) +
+  geom_point(aes(y = Cases, color = "Cases")) +
+  geom_line(aes(y = Deaths, color = "Deaths")) +
+  geom_point(aes(y = Deaths, color = "Deaths")) +
+  scale_y_log10() +
+  labs(title = "US COVID-19 Cases and Deaths Over Time",
+       x = "Date",
+       y = "Count") +
+  scale_color_manual(values = c("Cases" = "blue", "Deaths" = "red")) +
+  theme_minimal()
+# 
+# Now lets do the same thing, but just for the state of California
+us_by_state %>%
+  filter(Cases > 0) %>%
+  filter(Province_State == "California") %>%
+  ggplot(aes(x = Date, y = Cases)) +
+  geom_line(aes(y = Cases, color = "Cases")) +
+  geom_point(aes(y = Cases, color = "Cases")) +
+  geom_line(aes(y = Deaths, color = "Deaths")) +
+  geom_point(aes(y = Deaths, color = "Deaths")) +
+  scale_y_log10() +
+  labs(title = "California COVID-19 Cases and Deaths Over Time",
+       x = "Date",
+       y = "Count") +
+  scale_color_manual(values = c("Cases" = "blue", "Deaths" = "red")) +
+  theme_minimal()
+
 ```
 
 ## Session Info
