@@ -305,6 +305,96 @@ us_state_totals %>%
   theme_minimal()
   
 ```
+## Model
+
+Lets train a linear regression model to predict the number of deaths per thousand based on the number of cases per thousand.  We will use the US data for this analysis.
+
+### Predict Deaths Per Thousand
+
+```{r model}
+# Create a linear regression model to predict deaths per thousand based on cases per thousand
+model <- lm(Deaths_Per_Thousand ~ Cases_Per_Thousand, data = us_state_totals)
+summary(model)
+
+# Lets add our predicted deaths per thousand to our data as a new column
+us_state_totals <- us_state_totals %>%
+  mutate(Predicted_Deaths_Per_Thousand = predict(model))
+
+us_state_totals %>%
+  ggplot(aes(x = Cases_Per_Thousand, y = Deaths_Per_Thousand)) +
+  geom_point(aes(color = "Actual Data")) +
+  geom_line(aes(y = Predicted_Deaths_Per_Thousand, color = "Predicted")) +
+  labs(title = "Deaths Per Thousand vs Cases Per Thousand",
+       x = "Cases Per Thousand",
+       y = "Deaths Per Thousand",
+       color = "Legend") +
+  scale_color_manual(values = c("Actual Data" = "black", "Predicted" = "blue")) +
+  theme_minimal()
+
+```
+### Add Additional Features
+
+Lets try adding vaccination data to our model and see how that impacts our predictions.  We will use the vaccination data from GovEx GitHub repository.
+
+
+```{r add-vaccine-data}
+# Read vaccination data from GovEx GitHub repository
+vaccine_data_url <- "https://raw.githubusercontent.com/govex/COVID-19/refs/heads/master/data_tables/vaccine_data/us_data/time_series/time_series_covid19_vaccine_us.csv"
+
+# Lets add the columns Doses_admin,People_at_least_one_dose,People_fully_vaccinated,Total_additional_doses
+vaccine_data <- read_csv(vaccine_data_url, show_col_types = FALSE) %>%
+  select(Date, Province_State, Country_Region, Doses_admin, People_at_least_one_dose, People_fully_vaccinated, Total_additional_doses)
+
+# Find the latest vaccination totals
+us_vaccine_totals <- vaccine_data %>%
+  group_by(Province_State) %>%
+  summarise(
+    Doses_admin = max(Doses_admin, na.rm = TRUE),
+    People_at_least_one_dose = max(People_at_least_one_dose, na.rm = TRUE),
+    People_fully_vaccinated = max(People_fully_vaccinated, na.rm = TRUE),
+    Total_additional_doses = max(Total_additional_doses, na.rm = TRUE)
+  )
+
+# Join vaccine data to us state totals data
+us_state_totals <- us_state_totals %>%
+  left_join(us_vaccine_totals, by = "Province_State")
+
+# Make a per thousand column for the vaccine data
+us_state_totals <- us_state_totals %>%
+  mutate(
+    Doses_admin_Per_Thousand = 1000 * Doses_admin / Population,
+    People_at_least_one_dose_Per_Thousand = 1000 * People_at_least_one_dose / Population,
+    People_fully_vaccinated_Per_Thousand = 1000 * People_fully_vaccinated / Population,
+    Total_additional_doses_Per_Thousand = 1000 * Total_additional_doses / Population
+  )
+```
+
+We have different vaccination metrics.  Let's see how they correlate with our deaths per thousand.
+```{r vaccine-correlation, fig.width=8, fig.height=6, dpi=150}
+# Correlation matrix for deaths per thousand and vaccination data
+vaccine_data <- us_state_totals %>%
+  select(Deaths_Per_Thousand, Cases_Per_Thousand, Doses_admin_Per_Thousand, People_at_least_one_dose_Per_Thousand, People_fully_vaccinated_Per_Thousand, Total_additional_doses_Per_Thousand)
+correlation_matrix <- cor(vaccine_data, use = "pairwise.complete.obs")
+# Plot the correlation matrix
+# corrplot(correlation_matrix, method = "circle", type = "upper", tl.col = "black", tl.srt = 45, title = "Correlation Matrix for Deaths Per Thousand and Vaccination Data")
+corrplot(
+  correlation_matrix,
+  method = "number",        # Show correlation coefficients
+  type = "upper",           # Only show the upper half
+  tl.col = "black",         # Text label color
+  tl.srt = 45,              # Rotate text labels
+  title = "Correlation Matrix for Deaths Per Thousand and Vaccination Data",
+  mar = c(0, 0, 1, 0),      # Adjust margins (optional)
+  number.cex = 0.8          # Control size of the correlation coefficients
+)
+```
+
+Now lets train a new model and add the additional doses per thousand to our model since it has the strongest correlation with deaths per thousand.
+```{r model-with-vaccine}
+# Create a linear regression model to predict deaths per thousand based on cases per thousand and additional doses per thousand
+model_vaccine <- lm(Deaths_Per_Thousand ~ Cases_Per_Thousand + Total_additional_doses_Per_Thousand, data = us_state_totals)
+summary(model_vaccine)
+```
 
 ## Session Info
 
