@@ -26,7 +26,7 @@ My goal is to better understand the COVID-19 pandemic and what factors contribut
 
 On March 10, 2023, the Johns Hopkins Corona Virus Resource Center ceased its collecting and reporting of global COVID-19 data.
 
-## Step 1: Import COVID-19 Data
+## Import COVID-19 Data
 
 ```{r import}
 # Read time series data from Johns Hopkins University GitHub repository
@@ -40,7 +40,7 @@ us_cases <- read_csv(urls[1], show_col_types = FALSE)
 us_deaths <- read_csv(urls[2], show_col_types = FALSE)
 ```
 
-## Step 2: Tidy and Transform Data
+## Tidy and Transform Data
 
 ### Examine Our Data
 
