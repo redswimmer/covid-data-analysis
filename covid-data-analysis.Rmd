@@ -9,7 +9,6 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-#library(dplyr)
 library(ggplot2)
 library(lubridate)
 library(corrplot)
@@ -30,16 +29,12 @@ On March 10, 2023, the Johns Hopkins Corona Virus Resource Center ceased its col
 # Read time series data from Johns Hopkins University GitHub repository
 # Raw base URL
 url_base <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
-file_names <- c("time_series_covid19_confirmed_global.csv", 
-                "time_series_covid19_deaths_global.csv", 
-                "time_series_covid19_confirmed_US.csv",
+file_names <- c("time_series_covid19_confirmed_US.csv",
                 "time_series_covid19_deaths_US.csv")
 urls <- str_c(url_base, file_names)
 
-global_cases <- read_csv(urls[1], show_col_types = FALSE)
-global_deaths <- read_csv(urls[2], show_col_types = FALSE)
-us_cases <- read_csv(urls[3], show_col_types = FALSE)
-us_deaths <- read_csv(urls[4], show_col_types = FALSE)
+us_cases <- read_csv(urls[1], show_col_types = FALSE)
+us_deaths <- read_csv(urls[2], show_col_types = FALSE)
 ```
 
 ## Step 2: Tidy and Transform Data
@@ -49,71 +44,9 @@ us_deaths <- read_csv(urls[4], show_col_types = FALSE)
 Here's our raw data:
 ```{r display}
 # Display our raw COVID-19 data
-head(global_cases)
-head(global_deaths)
 head(us_cases)
 head(us_deaths)
 ```
-### Global Data
-
-Lets start by transforming our global data.
-```{r transform global-data}
-# Convert global cases wide to long format and drop lat and long
-global_cases_long <- global_cases %>%
-  pivot_longer(cols = -c(`Province/State`, `Country/Region`, Lat, Long), 
-               names_to = "Date", values_to = "Cases") %>%
-  mutate(Date = mdy(Date)) %>%
-  select(-Lat, -Long)
-
-global_deaths_long <- global_deaths %>%
-  pivot_longer(cols = -c(`Province/State`, `Country/Region`, Lat, Long), 
-               names_to = "Date", values_to = "Deaths") %>%
-  mutate(Date = mdy(Date)) %>%
-  select(-Lat, -Long)
-
-head(global_cases_long)
-head(global_deaths_long)
-```
-We can combine our global data.
-```{r combine global-data}
-# Combine global cases and deaths data
-global_data <- global_cases_long %>%
-  full_join(global_deaths_long, by = c("Province/State", "Country/Region", "Date")) %>%
-  rename(Province_State = `Province/State`, Country_Region = `Country/Region`)
-
-summary(global_data)
-```
-Lets filter our global data to only include countries with cases greater than 0.  This will help us with our analysis.
-
-```{r filter global-data}
-# Filter global data where the cases are positive
-global_data <- global_data %>% filter(Cases > 0)
-summary(global_data)
-```
-Lastly, let add the population data to our global data from John Hopkins University GitHub.
-
-```{r add population}
-# Create a Combined_Key column for global data
-global_data <- global_data %>%
-  unite("Combined_Key", c(Province_State, Country_Region), sep = ", ", na.rm = TRUE, remove = FALSE)
-
-# Download population data from John Hopkins University
-uid_lookup_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv"
-uid <- read_csv(uid_lookup_url, show_col_types = FALSE) %>%
-  select(Province_State, Country_Region, Population)
-
-# Join population data to global data by Country_Region and Province_State
-global_data <- global_data %>%
-  left_join(uid, by = c("Province_State", "Country_Region")) %>%
-  select(Province_State, Country_Region, Date, Cases, Deaths, Population, Combined_Key)
-
-# Lets filter to only show populations > 0
-global_data <- global_data %>% filter(Population > 0)
-
-summary(global_data)
-```
-
-### US Data
 
 Lets continue with looking at our US data.
 
@@ -153,9 +86,7 @@ summary(us_data)
 ```
 ## Visualizations and Analysis
 
-### US Visualizations
-
-Lets start with some visualizations of the US data.  We will create a few plots to show the trends in cases and deaths over time.
+Lets start with some visualizations of the US data.  We will create a plot to show the trends in cases and deaths over time in the US and then focus in on my home state of California.
 
 ```{r us-visualizations}
 # US totals by state
@@ -190,7 +121,7 @@ us_totals %>%
        y = "Count") +
   scale_color_manual(values = c("Cases" = "blue", "Deaths" = "red")) +
   theme_minimal()
-# 
+
 # Now lets do the same thing, but just for the state of California
 us_by_state %>%
   filter(Cases > 0) %>%
@@ -209,6 +140,8 @@ us_by_state %>%
 
 ```
 ### US Analysis
+
+Now lets do some analysis.  We will look at the new cases and deaths over time by week.
 
 ```{r us-analysis}
 us_totals <- us_totals %>%
@@ -270,7 +203,7 @@ ca_totals_weekly %>%
   scale_color_manual(values = c("Weekly Cases" = "blue", "Weekly Deaths" = "red")) +
   theme_minimal()
 ```
-We're going to focus our analysis on the states with the most deaths and cases per thousand.
+Now lets see which states had the most deaths and cases per thousand.
 
 ```{r us-per-thousand}
 # Calculate cases and deaths per thousand grouped by state
@@ -309,9 +242,9 @@ us_state_totals %>%
 ```
 ## Model
 
-Lets train a linear regression model to predict the number of deaths per thousand based on the number of cases per thousand.  We will use the US data for this analysis.
+Lets train a linear regression model to predict the number of deaths per thousand based on the number of cases per thousand.
 
-### Predict Deaths Per Thousand
+### Initial Prediction
 
 ```{r model}
 # Create a linear regression model to predict deaths per thousand based on cases per thousand
@@ -334,10 +267,11 @@ us_state_totals %>%
   theme_minimal()
 
 ```
-### Add Additional Features
+Based on the Multiple R-squared, we can see that our model explains about 30% of the variation in deaths per thousand.  This is not a very good model.  We can try to improve it by adding more features to our model.
+
+### Additional Features
 
 Lets try adding vaccination data to our model and see how that impacts our predictions.  We will use the vaccination data from GovEx GitHub repository.
-
 
 ```{r add-vaccine-data}
 # Read vaccination data from GovEx GitHub repository
@@ -371,7 +305,8 @@ us_state_totals <- us_state_totals %>%
   )
 ```
 
-We have different vaccination metrics.  Let's see how they correlate with our deaths per thousand.
+Looking at our new vaccination data, we have several features to choose from.  They're likely highly correlated.  Lets see how they see how they correlate with our deaths per thousand and one another.
+
 ```{r vaccine-correlation, fig.width=8, fig.height=6, dpi=150}
 # Correlation matrix for deaths per thousand and vaccination data
 vaccine_data <- us_state_totals %>%
@@ -390,8 +325,8 @@ corrplot(
   number.cex = 0.8          # Control size of the correlation coefficients
 )
 ```
+Additional doses per thousand seems to have the strongest correlation with deaths per thousand.  Lets try training a new model and add the additional doses per thousand feature.
 
-Now lets train a new model and add the additional doses per thousand to our model since it has the strongest correlation with deaths per thousand.
 ```{r model-with-vaccine}
 # Create a linear regression model to predict deaths per thousand based on cases per thousand and additional doses per thousand
 model_vaccine <- lm(Deaths_Per_Thousand ~ Cases_Per_Thousand + Total_additional_doses_Per_Thousand, data = us_state_totals)
@@ -410,6 +345,15 @@ ggplot(us_state_totals, aes(x = Predicted_Deaths_Per_Thousand_Vaccine, y = Death
        title = "Predicted vs Actual Deaths Per Thousand") +
   theme_minimal()
 ```
+We're going in the right direction because Multiple R-squared indicates our model explains about 42% of the variation in deaths per thousand.  This is a significant improvement over our previous model.  
+
+## Bias Identification and Conclusion
+
+Regarding bias, it's important to recognize that different states may have different criteria for attributing deaths to COVID-19.  Some may report more conservatively, while others more liberally.  This could lead to bias in our model and our predictions.  Additionally, the data is not perfect and there may be missing or inaccurate data points.  This could also lead to bias in our model and our predictions. 
+
+In conclusion, we were able to train a model which was able to explain roughly 42% of the variation in deaths per thousand.  We were able to do this by adding additional features to our model, specifically vaccination data.  This is a significant improvement over our previous model which only explained about 30% of the variation in deaths per thousand.
+
+We can see that the model is not perfect, but it does provide some insight into the relationship between cases per thousand and deaths per thousand.  
 
 ## Session Info
 
