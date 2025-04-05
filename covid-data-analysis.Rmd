@@ -1,7 +1,7 @@
 ---
 title: "COVID-19 Data Analysis"
 author: "Andrew Savala"
-date: "2025-04-01"
+date: "2025-04-05"
 output:
   html_document: default
   pdf_document: default
@@ -18,9 +18,11 @@ library(tidyverse)
 
 ## Overview
 
-In this project I will be analyzing COVID-19 data from the the Center for Systems Science and Engineering (CSSE) at Johns Hopkins University.  The dataset contains daily time series summary tables, including confirmed, deaths and recovered.
+In this project I will be analyzing COVID-19 time series data from the the Center for Systems Science and Engineering (CSSE) at Johns Hopkins University.  The data set contains daily time series summary tables, including confirmed, deaths and recovered.
 
-On March 10, 2023, the Johns Hopkins Coronavirus Resource Center ceased its collecting and reporting of global COVID-19 data.
+My goal is to better understand the COVID-19 pandemic and what factors contributed to deaths in the United States.
+
+On March 10, 2023, the Johns Hopkins Corona Virus Resource Center ceased its collecting and reporting of global COVID-19 data.
 
 ## Step 1: Import COVID-19 Data
 
@@ -394,6 +396,19 @@ Now lets train a new model and add the additional doses per thousand to our mode
 # Create a linear regression model to predict deaths per thousand based on cases per thousand and additional doses per thousand
 model_vaccine <- lm(Deaths_Per_Thousand ~ Cases_Per_Thousand + Total_additional_doses_Per_Thousand, data = us_state_totals)
 summary(model_vaccine)
+
+# Now lets compare our predicted deaths per thousand to our actual deaths per thousand
+us_state_totals <- us_state_totals %>%
+  mutate(Predicted_Deaths_Per_Thousand_Vaccine = predict(model_vaccine))
+
+# Now lets plot our Predicted_Deaths_Per_Thousand_Vaccine vs the actual Deaths_Per_Thousand
+ggplot(us_state_totals, aes(x = Predicted_Deaths_Per_Thousand_Vaccine, y = Deaths_Per_Thousand)) +
+  geom_point(color = "blue", size = 3) +
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
+  labs(x = "Predicted Deaths Per Thousand (Vaccine)",
+       y = "Actual Deaths Per Thousand",
+       title = "Predicted vs Actual Deaths Per Thousand") +
+  theme_minimal()
 ```
 
 ## Session Info
